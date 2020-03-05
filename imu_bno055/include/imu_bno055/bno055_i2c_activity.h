@@ -189,11 +189,12 @@
 #define BNO055_REMAP_SIGN_P7 0x05
 
 #define DIAG_CALIB_STAT 0
-#define DIAG_SELFTEST_RESULT 1
-#define DIAG_INTR_STAT 2
-#define DIAG_SYS_CLK_STAT 3
-#define DIAG_SYS_STAT 4
-#define DIAG_SYS_ERR 5
+#define DIAG_MAG_CALIB_STAT 1
+#define DIAG_SELFTEST_RESULT 2
+#define DIAG_INTR_STAT 3
+#define DIAG_SYS_CLK_STAT 4
+#define DIAG_SYS_STAT 5
+#define DIAG_SYS_ERR 6
 
 namespace imu_bno055 {
 

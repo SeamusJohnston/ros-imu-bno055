@@ -27,6 +27,11 @@ BNO055I2CActivity::BNO055I2CActivity(ros::NodeHandle &_nh, ros::NodeHandle &_nh_
     calib_stat.value = "";
     current_status.values.push_back(calib_stat);
 
+    diagnostic_msgs::KeyValue mag_calib_stat;
+    mag_calib_stat.key = "Mag calibration status";
+    mag_calib_stat.value = "";
+    current_status.values.push_back(mag_calib_stat);
+
     diagnostic_msgs::KeyValue selftest_result;
     selftest_result.key = "Self-test result";
     selftest_result.value = "";
@@ -83,6 +88,11 @@ bool BNO055I2CActivity::reset() {
     _i2c_smbus_write_byte_data(file, BNO055_SYS_TRIGGER_ADDR, 0);
     ros::Duration(0.025).sleep();
 
+    // Custom
+    _i2c_smbus_write_byte_data(file, BNO055_AXIS_MAP_CONFIG_ADDR, 0x18);
+    // DEFAULT _i2c_smbus_write_byte_data(file, BNO055_AXIS_MAP_CONFIG_ADDR, BNO055_REMAP_CONFIG_P1);
+    ros::Duration(0.025).sleep();
+
     _i2c_smbus_write_byte_data(file, BNO055_OPR_MODE_ADDR, BNO055_OPERATION_MODE_NDOF);
     ros::Duration(0.025).sleep();
 
@@ -95,16 +105,16 @@ bool BNO055I2CActivity::start() {
     ROS_INFO("starting");
 
     if(!pub_data) pub_data = nh.advertise<sensor_msgs::Imu>("data", 1);
-    if(!pub_raw) pub_raw = nh.advertise<sensor_msgs::Imu>("raw", 1);
+    //if(!pub_raw) pub_raw = nh.advertise<sensor_msgs::Imu>("raw", 1);
     if(!pub_mag) pub_mag = nh.advertise<sensor_msgs::MagneticField>("mag", 1);
-    if(!pub_temp) pub_temp = nh.advertise<sensor_msgs::Temperature>("temp", 1);
+    //f(!pub_temp) pub_temp = nh.advertise<sensor_msgs::Temperature>("temp", 1);
     if(!pub_status) pub_status = nh.advertise<diagnostic_msgs::DiagnosticStatus>("status", 1);
 
-    if(!service_calibrate) service_calibrate = nh.advertiseService(
+    /*if(!service_calibrate) service_calibrate = nh.advertiseService(
         "calibrate",
         &BNO055I2CActivity::onServiceCalibrate,
         this
-    );
+    );*/
 
     if(!service_reset) service_reset = nh.advertiseService(
         "reset",
@@ -199,19 +209,28 @@ bool BNO055I2CActivity::spinOnce() {
     msg_data.angular_velocity.y = (double)record.raw_angular_velocity_y / 900.0;
     msg_data.angular_velocity.z = (double)record.raw_angular_velocity_z / 900.0;
 
-    sensor_msgs::Temperature msg_temp;
-    msg_temp.header.stamp = time;
-    msg_temp.header.frame_id = param_frame_id;
-    msg_temp.header.seq = seq;
-    msg_temp.temperature = (double)record.temperature;
+    // Credit: Maarten De Munck <maarten@vijfendertig.be
+    // Covariances. The Bosch BNO055 datasheet is pretty useless regarding the sensor's accuracy.
+    // - The accuracy of the magnetometer is +-2.5deg. Users on online forums agree on that number.
+    // - The accuracy of the gyroscope is unknown. I use the +-3deg/s zero rate offset. To be tested.
+    // - The accuracy of the accelerometer is unknown. Based on the typical and maximum zero-g offset (+-80mg and
+    //   +-150mg) and the fact that my graphs look better than that, I use 80mg. To be tested.
+    // Cross-axis errors are not (yet) taken into account. To be tested.
+    for(unsigned row = 0; row < 3; ++ row) {
+      for(unsigned col = 0; col < 3; ++ col) {
+        msg_data.orientation_covariance[row * 3 + col] = (row == col? 0.002: 0.);  // +-2.5deg
+        msg_data.angular_velocity_covariance[row * 3 + col] = (row == col? 0.003: 0.);  // +-3deg/s
+        msg_data.linear_acceleration_covariance[row * 3 + col] = (row == col? 0.60: 0.);  // +-80mg
+      }
+    }
 
     pub_data.publish(msg_data);
-    pub_raw.publish(msg_raw);
+    // pub_raw.publish(msg_raw);
     pub_mag.publish(msg_mag);
-    pub_temp.publish(msg_temp);
 
     if(seq % 50 == 0) {
         current_status.values[DIAG_CALIB_STAT].value = std::to_string(record.calibration_status);
+        current_status.values[DIAG_MAG_CALIB_STAT].value = std::to_string(record.calibration_status & 0x03);
         current_status.values[DIAG_SELFTEST_RESULT].value = std::to_string(record.self_test_result);
         current_status.values[DIAG_INTR_STAT].value = std::to_string(record.interrupt_status);
         current_status.values[DIAG_SYS_CLK_STAT].value = std::to_string(record.system_clock_status);
