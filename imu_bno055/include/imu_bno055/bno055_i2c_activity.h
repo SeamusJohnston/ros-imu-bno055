@@ -7,6 +7,8 @@
 #include <cstring>
 #include <sys/ioctl.h>
 #include <fcntl.h>
+#include <iostream>
+#include <fstream>
 
 #include <sensor_msgs/Imu.h>
 #include <sensor_msgs/MagneticField.h>
@@ -190,11 +192,14 @@
 
 #define DIAG_CALIB_STAT 0
 #define DIAG_MAG_CALIB_STAT 1
-#define DIAG_SELFTEST_RESULT 2
-#define DIAG_INTR_STAT 3
-#define DIAG_SYS_CLK_STAT 4
-#define DIAG_SYS_STAT 5
-#define DIAG_SYS_ERR 6
+#define DIAG_ACC_CALIB_STAT 2
+#define DIAG_GYR_CALIB_STAT 3
+#define DIAG_SYS_CALIB_STAT 4
+#define DIAG_SELFTEST_RESULT 5
+#define DIAG_INTR_STAT 6
+#define DIAG_SYS_CLK_STAT 7
+#define DIAG_SYS_STAT 8
+#define DIAG_SYS_ERR 9
 
 namespace imu_bno055 {
 
@@ -231,6 +236,20 @@ typedef struct {
   uint8_t system_status;
   uint8_t system_error_code;
 } IMURecord;
+
+typedef struct{
+  int16_t accel_x_offset;
+  int16_t accel_y_offset;
+  int16_t accel_z_offset;
+  int16_t mag_x_offset;
+  int16_t mag_y_offset;
+  int16_t mag_z_offset;
+  int16_t gyr_x_offset;
+  int16_t gyr_y_offset;
+  int16_t gyr_z_offset;
+  int16_t acc_radius;
+  int16_t mag_radius;
+} CalibrationProfile;
 
 class BNO055I2CActivity {
   public:

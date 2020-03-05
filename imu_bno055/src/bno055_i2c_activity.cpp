@@ -32,6 +32,21 @@ BNO055I2CActivity::BNO055I2CActivity(ros::NodeHandle &_nh, ros::NodeHandle &_nh_
     mag_calib_stat.value = "";
     current_status.values.push_back(mag_calib_stat);
 
+    diagnostic_msgs::KeyValue acc_calib_stat;
+    acc_calib_stat.key = "Acc calibration status";
+    acc_calib_stat.value = "";
+    current_status.values.push_back(acc_calib_stat);
+
+    diagnostic_msgs::KeyValue gyr_calib_stat;
+    gyr_calib_stat.key = "Gyr calibration status";
+    gyr_calib_stat.value = "";
+    current_status.values.push_back(gyr_calib_stat);
+
+    diagnostic_msgs::KeyValue sys_calib_stat;
+    sys_calib_stat.key = "Sys calibration status";
+    sys_calib_stat.value = "";
+    current_status.values.push_back(sys_calib_stat);
+
     diagnostic_msgs::KeyValue selftest_result;
     selftest_result.key = "Self-test result";
     selftest_result.value = "";
@@ -145,6 +160,21 @@ bool BNO055I2CActivity::start() {
         return false;
     }
 
+    CalibrationProfile profile;
+    std::ifstream inbal("/home/jetson/calibration_profile", std::ios::in | std::ios::binary);
+    if(!inbal) {
+        return false;
+    }
+
+    inbal.read((char *) &profile, sizeof(CalibrationProfile));
+
+    _i2c_smbus_write_byte_data(file,BNO055_OPR_MODE_ADDR, 0);
+    ros::Duration(0.025).sleep();
+    _i2c_smbus_write_i2c_block_data(file, BNO055_ACCEL_DATA_X_LSB_ADDR, 0x20,(uint8_t*)&profile);
+    _i2c_smbus_write_i2c_block_data(file, BNO055_ACCEL_DATA_X_LSB_ADDR + 0x20, 0x2, (uint8_t*)&profile);
+    _i2c_smbus_write_byte_data(file,BNO055_OPR_MODE_ADDR, 8);
+    ros::Duration(0.01).sleep();
+
     return true;
 }
 
@@ -154,6 +184,7 @@ bool BNO055I2CActivity::spinOnce() {
     ros::Time time = ros::Time::now();
 
     IMURecord record;
+    CalibrationProfile profile; 
 
     unsigned char c = 0;
 
@@ -167,6 +198,22 @@ bool BNO055I2CActivity::spinOnce() {
     if(_i2c_smbus_read_i2c_block_data(file, BNO055_ACCEL_DATA_X_LSB_ADDR + 0x20, 0x13, (uint8_t*)&record + 0x20) != 0x13) {
         return false;
     }
+
+    if(_i2c_smbus_read_i2c_block_data(file, BNO055_ACCEL_OFFSET_X_LSB_ADDR, 0x20, (uint8_t*)&profile) != 0x20){
+        return false;
+    }
+
+    if(_i2c_smbus_read_i2c_block_data(file, BNO055_ACCEL_OFFSET_X_LSB_ADDR + 0x20, 0x2, (uint8_t*)&profile) != 0x2){
+        return false;
+    }
+
+    std::ofstream outbal("/home/jetson/calibration_profile", std::ios::out | std::ios::binary);
+    if(!outbal) {
+        return false;
+    }
+
+    outbal.write((char *) &profile, sizeof(CalibrationProfile));
+    outbal.close();
 
     sensor_msgs::Imu msg_raw;
     msg_raw.header.stamp = time;
@@ -231,6 +278,9 @@ bool BNO055I2CActivity::spinOnce() {
     if(seq % 50 == 0) {
         current_status.values[DIAG_CALIB_STAT].value = std::to_string(record.calibration_status);
         current_status.values[DIAG_MAG_CALIB_STAT].value = std::to_string(record.calibration_status & 0x03);
+        current_status.values[DIAG_ACC_CALIB_STAT].value = std::to_string(record.calibration_status >> 2 & 0x03);
+        current_status.values[DIAG_GYR_CALIB_STAT].value = std::to_string(record.calibration_status  >> 4 & 0x03);
+        current_status.values[DIAG_SYS_CALIB_STAT].value = std::to_string(record.calibration_status  >> 6 & 0x03);
         current_status.values[DIAG_SELFTEST_RESULT].value = std::to_string(record.self_test_result);
         current_status.values[DIAG_INTR_STAT].value = std::to_string(record.interrupt_status);
         current_status.values[DIAG_SYS_CLK_STAT].value = std::to_string(record.system_clock_status);
