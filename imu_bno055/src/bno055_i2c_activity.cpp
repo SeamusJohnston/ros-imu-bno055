@@ -171,8 +171,7 @@ bool BNO055I2CActivity::start() {
 
     _i2c_smbus_write_byte_data(file,BNO055_OPR_MODE_ADDR, 0);
     ros::Duration(0.025).sleep();
-    _i2c_smbus_write_i2c_block_data(file, BNO055_ACCEL_OFFSET_X_LSB_ADDR, 0x20,(uint8_t*)&profile);
-    _i2c_smbus_write_i2c_block_data(file, BNO055_ACCEL_OFFSET_X_LSB_ADDR + 0x20, 0x2, (uint8_t*)&profile);
+    _i2c_smbus_write_i2c_block_data(file, BNO055_ACCEL_OFFSET_X_LSB_ADDR, 22,(uint8_t*)&profile);
     _i2c_smbus_write_byte_data(file,BNO055_OPR_MODE_ADDR, 8);
     ros::Duration(0.01).sleep();
 
