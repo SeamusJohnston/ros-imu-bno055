@@ -163,6 +163,7 @@ bool BNO055I2CActivity::start() {
     CalibrationProfile profile;
     std::ifstream inbal("/home/jetson/calibration_profile", std::ios::in | std::ios::binary);
     if(!inbal) {
+        ROS_ERROR("failed to load calibration profile");
         return false;
     }
 
@@ -209,6 +210,7 @@ bool BNO055I2CActivity::spinOnce() {
 
     std::ofstream outbal("/home/jetson/calibration_profile", std::ios::out | std::ios::binary);
     if(!outbal) {
+        ROS_ERROR("failed to write calibration profile");
         return false;
     }
 
