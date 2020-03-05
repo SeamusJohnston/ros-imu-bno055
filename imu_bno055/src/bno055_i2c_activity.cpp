@@ -200,11 +200,7 @@ bool BNO055I2CActivity::spinOnce() {
         return false;
     }
 
-    if(_i2c_smbus_read_i2c_block_data(file, BNO055_ACCEL_OFFSET_X_LSB_ADDR, 0x20, (uint8_t*)&profile) != 0x20){
-        return false;
-    }
-
-    if(_i2c_smbus_read_i2c_block_data(file, BNO055_ACCEL_OFFSET_X_LSB_ADDR + 0x20, 0x2, (uint8_t*)&profile) != 0x2){
+    if(_i2c_smbus_read_i2c_block_data(file, BNO055_ACCEL_OFFSET_X_LSB_ADDR, 22, (uint8_t*)&profile) != 22){
         return false;
     }
 
