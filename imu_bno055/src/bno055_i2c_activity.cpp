@@ -159,7 +159,7 @@ bool BNO055I2CActivity::start() {
         ROS_ERROR("chip reset and setup failed");
         return false;
     }
-
+/*
     CalibrationProfile profile;
     std::ifstream inbal("/home/jetson/calibration_profile_2", std::ios::in | std::ios::binary);
     if(!inbal) {
@@ -169,12 +169,12 @@ bool BNO055I2CActivity::start() {
 
     inbal.read((char *) &profile, sizeof(CalibrationProfile));
 
-    _i2c_smbus_write_byte_data(file,BNO055_OPR_MODE_ADDR, 0);
+    _i2c_smbus_write_byte_data(file,BNO055_OPR_MODE_ADDR, BNO055_OPERATION_MODE_CONFIG);
     ros::Duration(0.025).sleep();
     _i2c_smbus_write_i2c_block_data(file, BNO055_ACCEL_OFFSET_X_LSB_ADDR, 22,(uint8_t*)&profile);
-    _i2c_smbus_write_byte_data(file,BNO055_OPR_MODE_ADDR, 8);
+    _i2c_smbus_write_byte_data(file,BNO055_OPR_MODE_ADDR, BNO055_OPERATION_MODE_COMPASS);
     ros::Duration(0.01).sleep();
-
+*/
     return true;
 }
 
@@ -198,7 +198,7 @@ bool BNO055I2CActivity::spinOnce() {
     if(_i2c_smbus_read_i2c_block_data(file, BNO055_ACCEL_DATA_X_LSB_ADDR + 0x20, 0x13, (uint8_t*)&record + 0x20) != 0x13) {
         return false;
     }
-
+/*
     if(_i2c_smbus_read_i2c_block_data(file, BNO055_ACCEL_OFFSET_X_LSB_ADDR, 22, (uint8_t*)&profile) != 22){
         return false;
     }
@@ -211,7 +211,7 @@ bool BNO055I2CActivity::spinOnce() {
 
     outbal.write((char *) &profile, sizeof(CalibrationProfile));
     outbal.close();
-
+*/
     sensor_msgs::Imu msg_raw;
     msg_raw.header.stamp = time;
     msg_raw.header.frame_id = param_frame_id;
