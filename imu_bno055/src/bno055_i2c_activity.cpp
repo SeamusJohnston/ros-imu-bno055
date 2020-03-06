@@ -268,7 +268,8 @@ bool BNO055I2CActivity::spinOnce() {
       }
     }
 
-    pub_data.publish(msg_data);
+    if (!isnan(msg_data.orientation.x) && !isnan(msg_data.orientation.y) && !isnan(msg_data.orientation.z) && !isnan(msg_data.orientation.w)) 
+      pub_data.publish(msg_data);
     // pub_raw.publish(msg_raw);
     pub_mag.publish(msg_mag);
 
